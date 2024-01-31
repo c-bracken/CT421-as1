@@ -4,14 +4,6 @@ bin_data = open("./Binpacking.txt", "r")
 offset = 17
 tasks = 4
 
-# Task template dict
-task_t = {
-	"name": "task_name",
-	"bin_capacity": 0,
-	"items": [],
-	"item_count": 0
-}
-
 # List of task templates filled with task data
 task_list = []
 
@@ -77,6 +69,7 @@ for i in range(offset):
 
 # Read data for each bin-packing task
 for i in range(tasks):
+	# Task dict for storing task information
 	task_t = {
 		"name": "task_name",
 		"bin_capacity": 0,
@@ -84,6 +77,7 @@ for i in range(tasks):
 		"item_count": 0
 	}
 
+	# Read task information, strip whitespace
 	name = bin_data.readline().rstrip()
 	print("Task: {}".format(name))
 	weights = int(bin_data.readline().strip())
@@ -92,6 +86,7 @@ for i in range(tasks):
 	print("Bin capacity: {}".format(capacity))
 	task_t.update({"name": name, "bin_capacity": capacity})
 
+	# Read in weights and frequencies
 	item_sum = 0
 	weight_sum = 0
 	different_weights = 0
@@ -103,11 +98,16 @@ for i in range(tasks):
 		weight_sum += weight * count
 		task_t["items"].append([weight, count])
 	task_t["item_count"] = item_sum
+	# Print task summary
 	print("Total items: {}\nTotal weight: {}\nItems: {}\n".format(item_sum, weight_sum, task_t["items"]))
+
+	# Add task to list of tasks
 	task_list.append(task_t)
 
+# No more data to read from file; close file
+bin_data.close()
+
+# Iterate through each task and find a solution
 for i in task_list:
 	print("Finding solution for task {}...".format(i["name"]))
 	solve(i)
-
-bin_data.close()
