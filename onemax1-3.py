@@ -106,7 +106,7 @@ for i in range(population):
 
     fitnessList.append(0)
 # Inject deceptive string into population
-popList[0] = "000000000000000000000000000000"
+popList[random.randint(0, (population-1))] = "000000000000000000000000000000"
 
 calculate_fitnesses(popList)
 averages = open("onemax_averages_3.csv", "w")
