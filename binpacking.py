@@ -1,93 +1,127 @@
 import random
 
 def fitness(array, binMaxCapacity):
-	numBins = 0
-	binCapacity = 0
+    numBins = 0
+    binCapacity = 0
 
-	for i in array:
-		binCapacity += i
-		if(binCapacity > binMaxCapacity):
-			numBins += 1
-			binCapacity = i
+    for i in array:
+        binCapacity += i
+        if(binCapacity > binMaxCapacity):
+            numBins += 1
+            binCapacity = i
 
-	return numBins
+    return numBins
 
 def mutate(solution):
-	# Create a copy of the solution to mutate
-	mutation = solution.copy()
-	for i in range(len(mutation)):
-		if random.random() < mutation_rate:
-			# Choose position to swap with
-			new_position = random.randint(0, len(mutation) - 1)
-			# Swap elements
-			mutation[i], mutation[new_position] = mutation[new_position], mutation[i]
-	return mutation
+    # Create a copy of the solution to mutate
+    mutation = solution.copy()
+    for i in range(len(mutation)):
+        if random.random() < mutation_rate:
+            # Choose position to swap with
+            new_position = random.randint(0, len(mutation) - 1)
+            # Swap elements
+            mutation[i], mutation[new_position] = mutation[new_position], mutation[i]
+    return mutation
 
-# Return the weight of a [weight, frequency] list for sorting
-def weight_frequency_sort(e):
-	return e[0]
+def calculate_weights(solution):
+    sortedWeights = solution.copy()
+    sortedWeights.sort(reverse=True)
+    current = sortedWeights[0]
+    weights = [[current, 1]]
+    weightIndex = 0
+    for i in range(1, len(solution)):
+        if sortedWeights[i] == current:
+            weights[weightIndex][1] += 1
+        else:
+            weightIndex += 1
+            current = sortedWeights[i]
+            weights.append([sortedWeights[i], 1])
+    return weights
+
+def calculate_weight_diff(source, weights):
+    weightsDiff = []
+    weightsIndex = 0
+    for i in range(len(source)):
+        if source[i][0] > weights[i][0]:
+            weightsDiff.append([source[i][0], source[i][1]])
+        else:
+            weightsDiff.append([source[i][0], source[i][1] - weights[i][1]])
+    
+    diff1 = []
+    diff2 = []
+    for i in weightsDiff:
+        if i[1] < 0:
+            for j in range(-i[1]):
+                diff1.append(i[0])
+        elif i[1] > 0:
+            for j in range(i[1]):
+                diff2.append(i[0])
+    return [diff1, diff2]
 
 # Check if a given permutation contains the correct frequency of each item weight
-def check_correctness(frequencies, items):
-	for i in frequencies:
-		actual = 0
-		expected = i[1]
-		for j in items:
-			if i[0] == j:
-				actual += 1
-		if actual != expected:
-			print("Expected {} '{}'s, found {}".format(expected, i[0], actual))
-			return False
-	return True
+def check_correctness(source, target):
+    weights = calculate_weights(target)
+    return calculate_weights(target) == source
+    # for i in frequencies:
+        # actual = 0
+        # expected = i[1]
+        # for j in items:
+            # if i[0] == j:
+                # actual += 1
+        # if actual != expected:
+            # print("Expected {} '{}'s, found {}".format(expected, i[0], actual))
+            # return False
+    # return True
 
 # Find a solution for the given task
 def solve(task):
-	solutions = []
-	# Generate "default" permutation of item weights
-	available_items = task["items"].copy()
-	default_perm = []
-	for i in available_items:
-		for j in range(i[1]):
-			default_perm.append(i[0])
-	# Generate random starting population of permutations of the weights
-	for i in range(population):
-		# Set current permutation to a list of 0s
-		perm = []
-		for j in range(task["item_count"]):
-			perm.append(0)
-		max_valid_index = task["item_count"] - 1
-		# Iterate through "default" permutation, inserting in random indecies
-		# If a weight already exists in that index, try the next index
-		# Similar to hash table construction
-		for j in default_perm:
-			index = 0
-			if max_valid_index != 0:
-				index = random.randint(0, max_valid_index)
-			for k in range(task["item_count"]):
-				curr_index = (index + k) % task["item_count"]
-				if perm[curr_index] == 0:
-					perm[curr_index] = j
-					break
-		solutions.append(perm)
+    solutions = []
+    # Generate "default" permutation of item weights
+    available_items = task["items"].copy()
+    default_perm = []
+    for i in available_items:
+        for j in range(i[1]):
+            default_perm.append(i[0])
+    # Generate random starting population of permutations of the weights
+    for i in range(population):
+        # Set current permutation to a list of 0s
+        perm = []
+        for j in range(task["item_count"]):
+            perm.append(0)
+        max_valid_index = task["item_count"] - 1
+        # Iterate through "default" permutation, inserting in random indecies
+        # If a weight already exists in that index, try the next index
+        # Similar to hash table construction
+        for j in default_perm:
+            index = 0
+            if max_valid_index != 0:
+                index = random.randint(0, max_valid_index)
+            for k in range(task["item_count"]):
+                curr_index = (index + k) % task["item_count"]
+                if perm[curr_index] == 0:
+                    perm[curr_index] = j
+                    break
+        solutions.append(perm)
 
-	for i in range(population):
-		if check_correctness(task["items"], solutions[i]) == False:
-			print("Incorrect solution found: solution {} for task {}".format(i, task["name"]))
-			return
-	print("All solutions for task {} are correct".format(task["name"]))
+    # Test population generation
+    for i in range(population):
+        if check_correctness(task["items"], solutions[i]) == False:
+            print("Incorrect solution found: solution {} for task {}\n{}".format(i, task["name"], solutions[i]))
+            return
+    print("All solutions for task {} are correct".format(task["name"]))
 
-	mutants = []
-	mutantCount = 0
-	for i in range(population):
-		# create mutant
-		mutants.append(mutate(solutions[i]))
-		if check_correctness(task["items"], mutants[i]) == False:
-			print("Incorrect mutant generated: mutant {} for task {}".format(i, task["name"]))
-			return
-		if (mutants[i] == solutions[i]) == False:
-			print("Mutant created from solution {}".format(i))
-			mutantCount += 1
-	print("Correctly generated a mutant population for task {}, with {} solutions mutated in at least one position".format(task["name"], mutantCount))
+    # Test mutation code
+    mutants = []
+    mutantCount = 0
+    for i in range(population):
+        # create mutant
+        mutants.append(mutate(solutions[i]))
+        if check_correctness(task["items"], mutants[i]) == False:
+            print("Incorrect mutant generated: mutant {} for task {}\n".format(i, task["name"], mutants[i]))
+            return
+        if (mutants[i] == solutions[i]) == False:
+            mutantCount += 1
+    print("Correctly generated a mutant population for task {}, with {} solutions mutated in at least one position".format(task["name"], mutantCount))
 
 # Read in bin data
 bin_data = open("./Binpacking.txt", "r")
@@ -104,49 +138,49 @@ mutation_rate = 0.005
 
 # Skip text at the start
 for i in range(offset):
-	bin_data.readline()
+    bin_data.readline()
 
 # Read data for each bin-packing task
 for i in range(tasks):
-	# Task dict for storing task information
-	task_t = {
-		"name": "task_name",
-		"bin_capacity": 0,
-		"items": [],
-		"item_count": 0
-	}
+    # Task dict for storing task information
+    task_t = {
+        "name": "task_name",
+        "bin_capacity": 0,
+        "items": [],
+        "item_count": 0
+    }
 
-	# Read task information, strip whitespace
-	name = bin_data.readline().rstrip()
-	print("Task: {}".format(name))
-	weights = int(bin_data.readline().strip())
-	print("Weights: {}".format(weights))
-	capacity = int(bin_data.readline().strip())
-	print("Bin capacity: {}".format(capacity))
-	task_t.update({"name": name, "bin_capacity": capacity})
+    # Read task information, strip whitespace
+    name = bin_data.readline().rstrip()
+    print("Task: {}".format(name))
+    weights = int(bin_data.readline().strip())
+    print("Weights: {}".format(weights))
+    capacity = int(bin_data.readline().strip())
+    print("Bin capacity: {}".format(capacity))
+    task_t.update({"name": name, "bin_capacity": capacity})
 
-	# Read in weights and frequencies
-	item_sum = 0
-	weight_sum = 0
-	different_weights = 0
-	for j in range(weights):
-		[weight, count] = bin_data.readline().rstrip().split()
-		weight = int(weight)
-		count = int(count)
-		item_sum += count
-		weight_sum += weight * count
-		task_t["items"].append([weight, count])
-	task_t["item_count"] = item_sum
-	# Print task summary
-	print("Total items: {}\nTotal weight: {}\nItems: {}\n".format(item_sum, weight_sum, task_t["items"]))
+    # Read in weights and frequencies
+    item_sum = 0
+    weight_sum = 0
+    different_weights = 0
+    for j in range(weights):
+        [weight, count] = bin_data.readline().rstrip().split()
+        weight = int(weight)
+        count = int(count)
+        item_sum += count
+        weight_sum += weight * count
+        task_t["items"].append([weight, count])
+    task_t["item_count"] = item_sum
+    # Print task summary
+    print("Total items: {}\nTotal weight: {}\nItems: {}\n".format(item_sum, weight_sum, task_t["items"]))
 
-	# Add task to list of tasks
-	task_list.append(task_t)
+    # Add task to list of tasks
+    task_list.append(task_t)
 
 # No more data to read from file; close file
 bin_data.close()
 
 # Iterate through each task and find a solution
 for i in task_list:
-	print("Finding solution for task {}...".format(i["name"]))
-	solve(i)
+    print("Finding solution for task {}...".format(i["name"]))
+    solve(i)
