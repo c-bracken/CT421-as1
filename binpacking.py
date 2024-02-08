@@ -77,13 +77,17 @@ def solve(task):
 	print("All solutions for task {} are correct".format(task["name"]))
 
 	mutants = []
+	mutantCount = 0
 	for i in range(population):
 		# create mutant
 		mutants.append(mutate(solutions[i]))
 		if check_correctness(task["items"], mutants[i]) == False:
 			print("Incorrect mutant generated: mutant {} for task {}".format(i, task["name"]))
 			return
-	print("Correctly generated a mutant population for task {}".format(task["name"]))
+		if (mutants[i] == solutions[i]) == False:
+			print("Mutant created from solution {}".format(i))
+			mutantCount += 1
+	print("Correctly generated a mutant population for task {}, with {} solutions mutated in at least one position".format(task["name"], mutantCount))
 
 # Read in bin data
 bin_data = open("./Binpacking.txt", "r")
@@ -96,7 +100,7 @@ task_list = []
 # GA hyperparameters
 population = 20
 
-mutation_rate = 0.1
+mutation_rate = 0.005
 
 # Skip text at the start
 for i in range(offset):
