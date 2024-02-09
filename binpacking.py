@@ -11,13 +11,9 @@ task_list = []
 
 # GA hyperparameters
 population = 20
-
 mutation_rate = 0.3
-
 crossover_rate = 0.2
-
 cycles = 1000
-
 elites = 5
 
 fitnessList = list(range(population))
@@ -119,6 +115,7 @@ def check_correctness(source, target):
     weights = calculate_weights(target)
     return weights == source
 
+# Perform crossover on two solutions
 def crossover(parent1, parent2, task):
     # List manipulation
     child1 = parent1
@@ -146,6 +143,7 @@ def crossover_correction(cross1, cross2, task):
     cross2corrected = correct_weights(cross2, lack, excess)
     return cross1corrected, cross2corrected
 
+# Generate new population from elite individuals
 def generate_new_pop(popList, task):
     newpop = []
     elite_strs = fitness_sort(popList)
@@ -222,6 +220,7 @@ def solve(task):
     #         return
     # print("Correctly calculated weight differences as zero for task {}".format(task["name"]))
 
+    # Open file to write fitness data to
     task_file = open("{}.csv".format(task["name"]), "w")
     task_file.write("generation,fitness\n")
 
@@ -233,6 +232,7 @@ def solve(task):
     task_file.write("0,{}\n".format(average))
     
     for i in range(cycles):
+        # Perform crossover, mutation, and error correction
         solutions = generate_new_pop(solutions, task)
         for j in range(population):
             if check_correctness(task["items"], solutions[j]) == False:
@@ -244,15 +244,14 @@ def solve(task):
             total += j[1]
         average = total / population
         task_file.write("{},{}\n".format(i + 1, average))
-        
+
+        # Loops until a solution is found
         for j in range(population):
             if solution_fitnesses[j][1] == task["target"]:
                 print("Solution found for task {} in {} generations: solution {}\n{}".format(task["name"], i, j, solution_fitnesses[j][0]))
                 return
         #print("Average fitness: {}".format(average))
     task_file.close()
-
-
 
 # Skip text at the start
 for i in range(offset):
