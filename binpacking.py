@@ -1,4 +1,5 @@
 import random
+import math
 
 # Read in bin data
 bin_data = open("./Binpacking.txt", "r")
@@ -11,11 +12,11 @@ task_list = []
 # GA hyperparameters
 population = 20
 
-mutation_rate = 0.005
+mutation_rate = 0.3
 
-crossover_rate = 0.5
+crossover_rate = 0.2
 
-cycles = 100
+cycles = 1000
 
 elites = 5
 
@@ -36,6 +37,7 @@ def fitness(array, binMaxCapacity):
 
 # Generate fitnesses for a population
 def gen_fitnesses(popList, task):
+    fitnessList = []
     for i in range(population):
         fitnessList.append([popList[i], fitness(popList[i], task["bin_capacity"])])
     return fitnessList
@@ -109,13 +111,12 @@ def correct_weights(solution, excess, lack):
         for j in range(len(solution)):
             if corrected[j] == excess[i]:
                 corrected[j] = lack[i]
+                break
     return corrected
 
 # Check if a given solution contains the correct frequency of each item weight
 def check_correctness(source, target):
     weights = calculate_weights(target)
-    if weights != source:
-        print("Weights incorrect:\n{}\n{}".format(weights, source))
     return weights == source
 
 def crossover(parent1, parent2, task):
@@ -141,9 +142,9 @@ def weight_frequency_sort(e):
 def crossover_correction(cross1, cross2, task):
     w = calculate_weights(cross1)
     excess, lack = calculate_weight_diff(task["items"], w)
-    cross1 = correct_weights(cross1, excess, lack)
-    cross2 = correct_weights(cross2, lack, excess)
-    return cross1, cross2
+    cross1corrected = correct_weights(cross1, excess, lack)
+    cross2corrected = correct_weights(cross2, lack, excess)
+    return cross1corrected, cross2corrected
 
 def generate_new_pop(popList, task):
     newpop = []
@@ -189,12 +190,15 @@ def solve(task):
                     break
         solutions.append(perm)
 
-    # Test population generation
-    for i in range(population):
-        if check_correctness(task["items"], solutions[i]) == False:
-            print("Incorrect solution found: solution {} for task {}\n{}".format(i, task["name"], solutions[i]))
-            return
-    print("All solutions for task {} are correct".format(task["name"]))
+    # Error correcting code for verifying population generation, mutation and correction function properly
+    # Commented out as it modifies the population
+   
+    # # Test population generation
+    # for i in range(population):
+        # if check_correctness(task["items"], solutions[i]) == False:
+            # print("Incorrect solution found: solution {} for task {}\n{}".format(i, task["name"], solutions[i]))
+            # return
+    # print("All solutions for task {} are correct".format(task["name"]))
     #
     # # Test mutation code
     # mutants = []
@@ -218,13 +222,35 @@ def solve(task):
     #         return
     # print("Correctly calculated weight differences as zero for task {}".format(task["name"]))
 
+    task_file = open("{}.csv".format(task["name"]), "w")
+    task_file.write("generation,fitness\n")
+
+    solution_fitnesses = gen_fitnesses(solutions, task)
+    total = 0
+    for i in solution_fitnesses:
+        total += i[1]
+    average = total / population
+    task_file.write("0,{}\n".format(average))
+    
     for i in range(cycles):
         solutions = generate_new_pop(solutions, task)
         for j in range(population):
             if check_correctness(task["items"], solutions[j]) == False:
                 print("Incorrect solution found: solution {} for task {}\n{}".format(j, task["name"], solutions[j]))
                 return
-        print("All solutions for task {} are correct".format(task["name"]))
+        solution_fitnesses = gen_fitnesses(solutions, task)
+        total = 0
+        for j in solution_fitnesses:
+            total += j[1]
+        average = total / population
+        task_file.write("{},{}\n".format(i + 1, average))
+        
+        for j in range(population):
+            if solution_fitnesses[j][1] == task["target"]:
+                print("Solution found for task {} in {} generations: solution {}\n{}".format(task["name"], i, j, solution_fitnesses[j][0]))
+                return
+        #print("Average fitness: {}".format(average))
+    task_file.close()
 
 
 
@@ -239,7 +265,8 @@ for i in range(tasks):
         "name": "task_name",
         "bin_capacity": 0,
         "items": [],
-        "item_count": 0
+        "item_count": 0,
+        "target": 0
     }
 
     # Read task information, strip whitespace
@@ -263,8 +290,9 @@ for i in range(tasks):
         weight_sum += weight * count
         task_t["items"].append([weight, count])
     task_t["item_count"] = item_sum
+    task_t["target"] = math.ceil(weight_sum / capacity)
     # Print task summary
-    print("Total items: {}\nTotal weight: {}\nItems: {}\n".format(item_sum, weight_sum, task_t["items"]))
+    print("Total items: {}\nTotal weight: {}\nOptimal number of bins: {}\nItems: {}\n".format(item_sum, weight_sum, task_t["target"], task_t["items"]))
 
     # Add task to list of tasks
     task_list.append(task_t)
