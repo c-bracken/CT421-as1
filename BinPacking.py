@@ -23,17 +23,18 @@ def mutate(solution):
             mutation[i], mutation[new_position] = mutation[new_position], mutation[i]
     return mutation
 
-bin_data = open("./Binpacking.txt", "r")
-offset = 17
-tasks = 4
-
-# List of task templates filled with task data
-task_list = []
-
-# GA hyperparameters
-population = 20
-
-mutation_rate = 0.1
+def crossover(parent1, parent2):
+    # List manipulation
+    child1 = parent1
+    child2 = parent2
+    pivot = 0
+    if random.random() < crossover_rate:
+        pivot = random.randint(1, len(parent1) - 1)
+        # Head of parent1, tail of parent 2
+        child1 = parent1[:pivot] + parent2[pivot:]
+        # Head of parent2, tail of parent 1
+        child2 = parent2[:pivot] + parent1[pivot:]
+    return [child1, child2]
 
 # Return the weight of a [weight, frequency] list for sorting
 def weight_frequency_sort(e):
@@ -87,6 +88,34 @@ def solve(task):
             print("Incorrect solution found: solution {} for task {}".format(i, task["name"]))
             return
     print("All solutions for task {} are correct".format(task["name"]))
+
+    mutants = []
+    mutantCount = 0
+    for i in range(population):
+        # create mutant
+        mutants.append(mutate(solutions[i]))
+        if check_correctness(task["items"], mutants[i]) == False:
+            print("Incorrect mutant generated: mutant {} for task {}".format(i, task["name"]))
+            return
+        if (mutants[i] == solutions[i]) == False:
+            print("Mutant created from solution {}".format(i))
+            mutantCount += 1
+    print("Correctly generated a mutant population for task {}, with {} solutions mutated in at least one position".format(task["name"], mutantCount))
+
+# Read in bin data
+bin_data = open("./Binpacking.txt", "r")
+offset = 17
+tasks = 4
+
+# List of task templates filled with task data
+task_list = []
+
+# GA hyperparameters
+population = 20
+
+mutation_rate = 0.005
+
+crossover_rate = 0.5
 
 # Skip text at the start
 for i in range(offset):
