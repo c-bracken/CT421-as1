@@ -1,5 +1,6 @@
 import random
 
+# Calculate the fitness of a solution
 def fitness(array, binMaxCapacity):
     numBins = 0
     binCapacity = 0
@@ -12,6 +13,7 @@ def fitness(array, binMaxCapacity):
 
     return numBins
 
+# Mutate a solution
 def mutate(solution):
     # Create a copy of the solution to mutate
     mutation = solution.copy()
@@ -23,6 +25,7 @@ def mutate(solution):
             mutation[i], mutation[new_position] = mutation[new_position], mutation[i]
     return mutation
 
+# Calculate the weights and their given frequencies present in a solution
 def calculate_weights(solution):
     sortedWeights = solution.copy()
     sortedWeights.sort(reverse=True)
@@ -38,6 +41,7 @@ def calculate_weights(solution):
             weights.append([sortedWeights[i], 1])
     return weights
 
+# Given a solution and the correct number of weights, return 2 lists of the weights that are in excess and the weights that there are fewer of in the solution
 def calculate_weight_diff(source, weights):
     weightsDiff = []
     weightsIndex = 0
@@ -46,7 +50,7 @@ def calculate_weight_diff(source, weights):
             weightsDiff.append([source[i][0], source[i][1]])
         else:
             weightsDiff.append([source[i][0], source[i][1] - weights[i][1]])
-    
+
     diff1 = []
     diff2 = []
     for i in weightsDiff:
@@ -56,22 +60,23 @@ def calculate_weight_diff(source, weights):
         elif i[1] > 0:
             for j in range(i[1]):
                 diff2.append(i[0])
-    return [diff1, diff2]
+    return diff1, diff2
 
-# Check if a given permutation contains the correct frequency of each item weight
+# Given a solution with a known excess and lack of specific weights, insert the lacking weights back into the solution where there is an excess weight
+def correct_weights(solution, excess, lack):
+    corrected = solution.copy()
+    index = 0
+    while index < len(excess):
+        for i in range(solution):
+            if corrected[i] == excess[index]:
+                corrected[i] = lack[index]
+                index += 1
+    return corrected
+
+# Check if a given solution contains the correct frequency of each item weight
 def check_correctness(source, target):
     weights = calculate_weights(target)
     return calculate_weights(target) == source
-    # for i in frequencies:
-        # actual = 0
-        # expected = i[1]
-        # for j in items:
-            # if i[0] == j:
-                # actual += 1
-        # if actual != expected:
-            # print("Expected {} '{}'s, found {}".format(expected, i[0], actual))
-            # return False
-    # return True
 
 # Find a solution for the given task
 def solve(task):
@@ -122,6 +127,14 @@ def solve(task):
         if (mutants[i] == solutions[i]) == False:
             mutantCount += 1
     print("Correctly generated a mutant population for task {}, with {} solutions mutated in at least one position".format(task["name"], mutantCount))
+
+    # Test calculate_weight_diff code
+    for i in range(population):
+        solnExcess, solnLack = calculate_weight_diff(task["items"], calculate_weights(solutions[i]))
+        if not (solnExcess == [] and solnLack == []):
+            print("Incorrect weight differences calculated: solution {} for task {}".format(i, task["name"]))
+            return
+    print("Correctly calculated weight differences as zero for task {}".format(task["name"]))
 
 # Read in bin data
 bin_data = open("./Binpacking.txt", "r")
