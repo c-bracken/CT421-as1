@@ -78,6 +78,36 @@ def check_correctness(source, target):
     weights = calculate_weights(target)
     return calculate_weights(target) == source
 
+def crossover(parent1, parent2):
+    # List manipulation
+    child1 = parent1
+    child2 = parent2
+    pivot = 0
+    if random.random() < crossover_rate:
+        pivot = random.randint(1, len(parent1) - 1)
+        # Head of parent1, tail of parent 2
+        child1 = parent1[:pivot] + parent2[pivot:]
+        # Head of parent2, tail of parent 1
+        child2 = parent2[:pivot] + parent1[pivot:]
+    return [child1, child2]
+
+# Return the weight of a [weight, frequency] list for sorting
+def weight_frequency_sort(e):
+    return e[0]
+
+# Check if a given permutation contains the correct frequency of each item weight
+def check_correctness(frequencies, items):
+    for i in frequencies:
+        actual = 0
+        expected = i[1]
+        for j in items:
+            if i[0] == j:
+                actual += 1
+        if actual != expected:
+            print("Expected {} '{}'s, found {}".format(expected, i[0], actual))
+            return False
+    return True
+
 # Find a solution for the given task
 def solve(task):
     solutions = []
@@ -116,12 +146,14 @@ def solve(task):
     print("All solutions for task {} are correct".format(task["name"]))
 
     # Test mutation code
+
     mutants = []
     mutantCount = 0
     for i in range(population):
         # create mutant
         mutants.append(mutate(solutions[i]))
         if check_correctness(task["items"], mutants[i]) == False:
+
             print("Incorrect mutant generated: mutant {} for task {}\n".format(i, task["name"], mutants[i]))
             return
         if (mutants[i] == solutions[i]) == False:
@@ -134,7 +166,7 @@ def solve(task):
         if not (solnExcess == [] and solnLack == []):
             print("Incorrect weight differences calculated: solution {} for task {}".format(i, task["name"]))
             return
-    print("Correctly calculated weight differences as zero for task {}".format(task["name"]))
+    print("Correctly calculated weight differences as zero for task {}".format(task["name"])
 
 # Read in bin data
 bin_data = open("./Binpacking.txt", "r")
@@ -148,6 +180,8 @@ task_list = []
 population = 20
 
 mutation_rate = 0.005
+
+crossover_rate = 0.5
 
 # Skip text at the start
 for i in range(offset):
