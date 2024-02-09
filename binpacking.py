@@ -84,21 +84,15 @@ def calculate_weights(solution):
 def calculate_weight_diff(source, weights):
     weightsDiff = []
     weightsIndex = 0
-    print(len(source))
-    print(len(weights))
     for i in range(len(source)):
-        print("Source: {}\tWeight: {}".format(source[i], weights[weightsIndex]))
-        if source[i][0] > weights[weightsIndex][0]:
+        if weightsIndex == len(weights) or source[i][0] > weights[weightsIndex][0]:
             weightsDiff.append([source[i][0], source[i][1]])
         else:
             weightsDiff.append([source[i][0], source[i][1] - weights[weightsIndex][1]])
             weightsIndex += 1
 
-        if weightsIndex == len(weights):
-            break
-
-    diff1 = []
-    diff2 = []
+    diff1 = [] # excess
+    diff2 = [] # lack
     for i in weightsDiff:
         if i[1] < 0:
             for j in range(-i[1]):
@@ -111,8 +105,6 @@ def calculate_weight_diff(source, weights):
 # Given a solution with a known excess and lack of specific weights, insert the lacking weights back into the solution where there is an excess weight
 def correct_weights(solution, excess, lack):
     corrected = solution.copy()
-    print(len(excess))
-    print(len(lack))
     for i in range(len(excess)):
         for j in range(len(solution)):
             if corrected[j] == excess[i]:
@@ -122,7 +114,9 @@ def correct_weights(solution, excess, lack):
 # Check if a given solution contains the correct frequency of each item weight
 def check_correctness(source, target):
     weights = calculate_weights(target)
-    return calculate_weights(target) == source
+    if weights != source:
+        print("Weights incorrect:\n{}\n{}".format(weights, source))
+    return weights == source
 
 def crossover(parent1, parent2, task):
     # List manipulation
@@ -147,7 +141,6 @@ def weight_frequency_sort(e):
 def crossover_correction(cross1, cross2, task):
     w = calculate_weights(cross1)
     excess, lack = calculate_weight_diff(task["items"], w)
-    print("Excess: {}\nLack: {}".format(excess, lack))
     cross1 = correct_weights(cross1, excess, lack)
     cross2 = correct_weights(cross2, lack, excess)
     return cross1, cross2
@@ -155,9 +148,7 @@ def crossover_correction(cross1, cross2, task):
 def generate_new_pop(popList, task):
     newpop = []
     elite_strs = fitness_sort(popList)
-    # print(elite_strs)
     elite_strs = elite_strs[int(-elites):]
-    # print(elite_strs)
     for i in range(elites):
         elite_strs[i] = popList[elite_strs[i][1]]
     for i in range(elites):
@@ -199,11 +190,11 @@ def solve(task):
         solutions.append(perm)
 
     # Test population generation
-    # for i in range(population):
-    #     if check_correctness(task["items"], solutions[i]) == False:
-    #         print("Incorrect solution found: solution {} for task {}\n{}".format(i, task["name"], solutions[i]))
-    #         return
-    # print("All solutions for task {} are correct".format(task["name"]))
+    for i in range(population):
+        if check_correctness(task["items"], solutions[i]) == False:
+            print("Incorrect solution found: solution {} for task {}\n{}".format(i, task["name"], solutions[i]))
+            return
+    print("All solutions for task {} are correct".format(task["name"]))
     #
     # # Test mutation code
     # mutants = []
