@@ -63,7 +63,7 @@ def crossover(parent1, parent2):
 def fitness_sort(strings):
     mockpop = list(range(population))
     for i in range(population):
-        mockpop[i] = [mockpop[i], fitnessList[i]]
+        mockpop[i] = [mockpop[i], fitnessList[i ]]
     mockpop.sort(key=fitsort)
     return mockpop
 

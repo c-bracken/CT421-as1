@@ -1,5 +1,26 @@
 import random
 
+# Read in bin data
+bin_data = open("./Binpacking.txt", "r")
+offset = 17
+tasks = 4
+
+# List of task templates filled with task data
+task_list = []
+
+# GA hyperparameters
+population = 20
+
+mutation_rate = 0.005
+
+crossover_rate = 0.5
+
+cycles = 100
+
+elites = 5
+
+fitnessList = list(range(population))
+
 # Calculate the fitness of a solution
 def fitness(array, binMaxCapacity):
     numBins = 0
@@ -12,6 +33,24 @@ def fitness(array, binMaxCapacity):
             binCapacity = i
 
     return numBins
+
+# Generate fitnesses for a population
+def gen_fitnesses(popList, task):
+    for i in range(population):
+        fitnessList.append([popList[i], fitness(popList[i], task["bin_capacity"])])
+    return fitnessList
+
+# Sort by fitness
+def fitness_sort(popList):
+    mockpop = list(range(population))
+    for i in range(population):
+        mockpop[i] = [popList[i], fitnessList[i]]
+    mockpop.sort(key=fitsort)
+    return mockpop
+
+# Return fitness value to sort by
+def fitsort(e):
+    return e[1]
 
 # Mutate a solution
 def mutate(solution):
@@ -45,11 +84,18 @@ def calculate_weights(solution):
 def calculate_weight_diff(source, weights):
     weightsDiff = []
     weightsIndex = 0
+    print(len(source))
+    print(len(weights))
     for i in range(len(source)):
-        if source[i][0] > weights[i][0]:
+        print("Source: {}\tWeight: {}".format(source[i], weights[weightsIndex]))
+        if source[i][0] > weights[weightsIndex][0]:
             weightsDiff.append([source[i][0], source[i][1]])
         else:
-            weightsDiff.append([source[i][0], source[i][1] - weights[i][1]])
+            weightsDiff.append([source[i][0], source[i][1] - weights[weightsIndex][1]])
+            weightsIndex += 1
+
+        if weightsIndex == len(weights):
+            break
 
     diff1 = []
     diff2 = []
@@ -65,12 +111,12 @@ def calculate_weight_diff(source, weights):
 # Given a solution with a known excess and lack of specific weights, insert the lacking weights back into the solution where there is an excess weight
 def correct_weights(solution, excess, lack):
     corrected = solution.copy()
-    index = 0
-    while index < len(excess):
-        for i in range(solution):
-            if corrected[i] == excess[index]:
-                corrected[i] = lack[index]
-                index += 1
+    print(len(excess))
+    print(len(lack))
+    for i in range(len(excess)):
+        for j in range(len(solution)):
+            if corrected[j] == excess[i]:
+                corrected[j] = lack[i]
     return corrected
 
 # Check if a given solution contains the correct frequency of each item weight
@@ -78,7 +124,7 @@ def check_correctness(source, target):
     weights = calculate_weights(target)
     return calculate_weights(target) == source
 
-def crossover(parent1, parent2):
+def crossover(parent1, parent2, task):
     # List manipulation
     child1 = parent1
     child2 = parent2
@@ -89,24 +135,38 @@ def crossover(parent1, parent2):
         child1 = parent1[:pivot] + parent2[pivot:]
         # Head of parent2, tail of parent 1
         child2 = parent2[:pivot] + parent1[pivot:]
-    return [child1, child2]
+    newPop = list(range(2))
+    newPop[0], newPop[1] = crossover_correction(child1, child2, task)
+    return newPop
 
 # Return the weight of a [weight, frequency] list for sorting
 def weight_frequency_sort(e):
     return e[0]
 
-# Check if a given permutation contains the correct frequency of each item weight
-def check_correctness(frequencies, items):
-    for i in frequencies:
-        actual = 0
-        expected = i[1]
-        for j in items:
-            if i[0] == j:
-                actual += 1
-        if actual != expected:
-            print("Expected {} '{}'s, found {}".format(expected, i[0], actual))
-            return False
-    return True
+# Given a solution, return the excess and lack of weights
+def crossover_correction(cross1, cross2, task):
+    w = calculate_weights(cross1)
+    excess, lack = calculate_weight_diff(task["items"], w)
+    print("Excess: {}\nLack: {}".format(excess, lack))
+    cross1 = correct_weights(cross1, excess, lack)
+    cross2 = correct_weights(cross2, lack, excess)
+    return cross1, cross2
+
+def generate_new_pop(popList, task):
+    newpop = []
+    elite_strs = fitness_sort(popList)
+    # print(elite_strs)
+    elite_strs = elite_strs[int(-elites):]
+    # print(elite_strs)
+    for i in range(elites):
+        elite_strs[i] = popList[elite_strs[i][1]]
+    for i in range(elites):
+        newpop += crossover(elite_strs[i], elite_strs[(i + 1) % elites], task)
+        newpop += crossover(elite_strs[i], elite_strs[(i + 2) % elites], task)
+    for i in range(population):
+        newpop[i] = mutate(newpop[i])
+    gen_fitnesses(newpop, task)
+    return newpop
 
 # Find a solution for the given task
 def solve(task):
@@ -139,49 +199,43 @@ def solve(task):
         solutions.append(perm)
 
     # Test population generation
-    for i in range(population):
-        if check_correctness(task["items"], solutions[i]) == False:
-            print("Incorrect solution found: solution {} for task {}\n{}".format(i, task["name"], solutions[i]))
-            return
-    print("All solutions for task {} are correct".format(task["name"]))
+    # for i in range(population):
+    #     if check_correctness(task["items"], solutions[i]) == False:
+    #         print("Incorrect solution found: solution {} for task {}\n{}".format(i, task["name"], solutions[i]))
+    #         return
+    # print("All solutions for task {} are correct".format(task["name"]))
+    #
+    # # Test mutation code
+    # mutants = []
+    # mutantCount = 0
+    # for i in range(population):
+    #     # create mutant
+    #     mutants.append(mutate(solutions[i]))
+    #     if check_correctness(task["items"], mutants[i]) == False:
+    #
+    #         print("Incorrect mutant generated: mutant {} for task {}\n".format(i, task["name"], mutants[i]))
+    #         return
+    #     if (mutants[i] == solutions[i]) == False:
+    #         mutantCount += 1
+    # print("Correctly generated a mutant population for task {}, with {} solutions mutated in at least one position".format(task["name"], mutantCount))
+    #
+    # # Test calculate_weight_diff code
+    # for i in range(population):
+    #     solnExcess, solnLack = calculate_weight_diff(task["items"], calculate_weights(solutions[i]))
+    #     if not (solnExcess == [] and solnLack == []):
+    #         print("Incorrect weight differences calculated: solution {} for task {}".format(i, task["name"]))
+    #         return
+    # print("Correctly calculated weight differences as zero for task {}".format(task["name"]))
 
-    # Test mutation code
+    for i in range(cycles):
+        solutions = generate_new_pop(solutions, task)
+        for j in range(population):
+            if check_correctness(task["items"], solutions[j]) == False:
+                print("Incorrect solution found: solution {} for task {}\n{}".format(j, task["name"], solutions[j]))
+                return
+        print("All solutions for task {} are correct".format(task["name"]))
 
-    mutants = []
-    mutantCount = 0
-    for i in range(population):
-        # create mutant
-        mutants.append(mutate(solutions[i]))
-        if check_correctness(task["items"], mutants[i]) == False:
 
-            print("Incorrect mutant generated: mutant {} for task {}\n".format(i, task["name"], mutants[i]))
-            return
-        if (mutants[i] == solutions[i]) == False:
-            mutantCount += 1
-    print("Correctly generated a mutant population for task {}, with {} solutions mutated in at least one position".format(task["name"], mutantCount))
-
-    # Test calculate_weight_diff code
-    for i in range(population):
-        solnExcess, solnLack = calculate_weight_diff(task["items"], calculate_weights(solutions[i]))
-        if not (solnExcess == [] and solnLack == []):
-            print("Incorrect weight differences calculated: solution {} for task {}".format(i, task["name"]))
-            return
-    print("Correctly calculated weight differences as zero for task {}".format(task["name"])
-
-# Read in bin data
-bin_data = open("./Binpacking.txt", "r")
-offset = 17
-tasks = 4
-
-# List of task templates filled with task data
-task_list = []
-
-# GA hyperparameters
-population = 20
-
-mutation_rate = 0.005
-
-crossover_rate = 0.5
 
 # Skip text at the start
 for i in range(offset):
